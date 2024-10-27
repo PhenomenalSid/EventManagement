@@ -1,5 +1,8 @@
 package com.example.eventmanagement.exception;
 
+import com.example.eventmanagement.exception.AdminException.EventsNotFoundException;
+import com.example.eventmanagement.exception.AdminException.UsersNotFoundException;
+import com.example.eventmanagement.exception.AuthException.AdminRoleNotAllowedException;
 import com.example.eventmanagement.exception.AuthException.ForbiddenException;
 import com.example.eventmanagement.exception.AuthException.TokenNotValidException;
 import com.example.eventmanagement.exception.AuthException.UserNotLoggedInException;
@@ -17,6 +20,11 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(AdminRoleNotAllowedException.class)
+    public ResponseEntity<ErrorResponse> handleAdminRoleNotAllowedException(AdminRoleNotAllowedException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ErrorResponse("Admins cannot be registered!", ex.getMessage()));
+    }
+
     @ExceptionHandler(UserNotLoggedInException.class)
     public ResponseEntity<ErrorResponse> handleUserNotLoggedInException(UserNotLoggedInException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ErrorResponse("User not logged in", ex.getMessage()));
@@ -30,6 +38,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ForbiddenException.class)
     public ResponseEntity<ErrorResponse> handleForbiddenException(ForbiddenException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ErrorResponse("Access denied", ex.getMessage()));
+    }
+
+    @ExceptionHandler(UsersNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleUsersNotFoundException(UsersNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).body(new ErrorResponse("No users!", ex.getMessage()));
+    }
+
+    @ExceptionHandler(EventsNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleEventsNotFoundException(EventsNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).body(new ErrorResponse("No events!", ex.getMessage()));
     }
 
     @ExceptionHandler(UserNotFoundException.class)

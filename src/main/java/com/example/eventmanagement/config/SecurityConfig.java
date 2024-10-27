@@ -1,6 +1,5 @@
 package com.example.eventmanagement.config;
 
-import com.example.eventmanagement.exception.AuthException.ForbiddenException;
 import com.example.eventmanagement.exception.CustomAccessDeniedHandler;
 import com.example.eventmanagement.filter.JWTFilter;
 import com.example.eventmanagement.service.UserDetailsServiceImplementation;
@@ -16,6 +15,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
@@ -41,6 +41,7 @@ public class SecurityConfig {
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/events/**").hasAnyRole("ADMIN", "ORGANIZER")
                         .requestMatchers("/users/**").hasAnyRole("ADMIN", "ORGANIZER", "PARTICIPANT")
+                        .requestMatchers("/admins/**").hasAnyRole("ADMIN")
                         .requestMatchers("/rsvp/**").hasAnyRole("ADMIN", "PARTICIPANT", "ORGANIZER")
                         .anyRequest().authenticated()
                 )
@@ -70,7 +71,9 @@ public class SecurityConfig {
     public AuthenticationManager authenticationManager(AuthenticationConfiguration auth) throws Exception {
         return auth.getAuthenticationManager();
     }
-}
 
-//eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJPcmdhbmlzZXIiLCJpYXQiOjE3Mjk5NTcwOTgsImV4cCI6MTcyOTk2MDY5OH0.JGUJ4I5Px1XMYWIvEK0ye_YjwWlTxg55jgdKUCGFjgY
-//eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJQYXJ0aWNpcGFudCIsImlhdCI6MTcyOTk1NzIyMiwiZXhwIjoxNzI5OTYwODIyfQ.0QiiuNO-SkhX4uvV0iE747Cj7qiZ9jcZqE_mWcc4cSM
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+}

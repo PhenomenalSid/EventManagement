@@ -13,6 +13,7 @@ import com.example.eventmanagement.repository.EventRepository;
 import com.example.eventmanagement.repository.RSVPRepository;
 import com.example.eventmanagement.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,13 +34,17 @@ public class RSVPService {
     private UserRepository userRepository;
 
     @Transactional
-    public RSVPDTO respondToEvent(User user, RSVPDTO rsvpDTO) {
+    public RSVPDTO respondToEvent(String username, RSVPDTO rsvpDTO) {
         Event event = eventRepository.findById(rsvpDTO.getEventId()).orElseThrow(() -> new EventNotFoundException("Event with eventId " + rsvpDTO.getEventId() + " not found!"));
+        User user = userRepository.findByUsername(username).get();
         Optional<RSVP> existingRSVP = rsvpRepository.findByUserAndEvent(user, event);
         RSVP rsvp;
 
         if (existingRSVP.isPresent()) {
             rsvp = existingRSVP.get();
+            if (!rsvp.getUser().getUsername().equals(username)) {
+                throw new AccessDeniedException("You are not allowed to update other user's rsvp!");
+            }
             rsvp.setStatus(RSVPStatus.fromString(rsvpDTO.getStatus()));
         } else {
             RSVPKey rsvpKey = new RSVPKey();
@@ -54,6 +59,8 @@ public class RSVPService {
         }
 
         RSVP savedRSVP = rsvpRepository.save(rsvp);
+        event.getRsvps().add(savedRSVP);
+        eventRepository.save(event);
         return RSVP.toDTO(savedRSVP);
     }
 
@@ -67,18 +74,24 @@ public class RSVPService {
     }
 
     @Transactional
-    public RSVPDTO updateRSVP(Long userId, Long eventId, RSVPDTO rsvpRequestDTO) {
+    public RSVPDTO updateRSVP(Long userId, Long eventId, RSVPDTO rsvpRequestDTO, String username) {
         RSVPKey rsvpKey = new RSVPKey(userId, eventId);
         RSVP existingRSVP = rsvpRepository.findById(rsvpKey).orElseThrow(() -> new RSVPNotFoundException("RSVP not found!"));
+        if (!existingRSVP.getUser().getUsername().equals(username)) {
+            throw new AccessDeniedException("You are not allowed to update other user's rsvp!");
+        }
         existingRSVP.setStatus(RSVPStatus.fromString(rsvpRequestDTO.getStatus()));
         RSVP savedRSVP = rsvpRepository.save(existingRSVP);
         return RSVP.toDTO(savedRSVP);
     }
 
     @Transactional
-    public void deleteRSVP(Long userId, Long eventId, RSVPDTO rsvpdto) {
+    public void deleteRSVP(Long userId, Long eventId, RSVPDTO rsvpdto, String username) {
         RSVPKey rsvpKey = new RSVPKey(userId, eventId);
         RSVP existingRSVP = rsvpRepository.findById(rsvpKey).orElseThrow(() -> new RSVPNotFoundException("RSVP not found!"));
+        if (!existingRSVP.getUser().getUsername().equals(username)) {
+            throw new AccessDeniedException("You are not allowed to delete other user's rsvp!");
+        }
         rsvpRepository.delete(existingRSVP);
     }
 }

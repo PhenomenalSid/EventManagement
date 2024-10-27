@@ -1,10 +1,7 @@
 package com.example.eventmanagement.controller;
 
 import com.example.eventmanagement.dto.RSVPDTO;
-import com.example.eventmanagement.key.RSVPKey;
-import com.example.eventmanagement.model.User;
 import com.example.eventmanagement.service.RSVPService;
-import com.example.eventmanagement.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -20,15 +17,11 @@ public class RSVPController {
     @Autowired
     private RSVPService rsvpService;
 
-    @Autowired
-    private UserService userService;
-
     @PostMapping("/respond")
     public ResponseEntity<RSVPDTO> respondToEvent(@RequestBody RSVPDTO rsvpDTO) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
-        User user = userService.findUserByUsername(username);
-        RSVPDTO rsvp = rsvpService.respondToEvent(user, rsvpDTO);
+        RSVPDTO rsvp = rsvpService.respondToEvent(username, rsvpDTO);
         return ResponseEntity.ok(rsvp);
     }
 
@@ -38,23 +31,27 @@ public class RSVPController {
         return ResponseEntity.ok(rsvps);
     }
 
-    @PutMapping("/rsvp")
+    @PutMapping("")
     public ResponseEntity<RSVPDTO> updateRSVP(
             @RequestParam Long userId,
             @RequestParam Long eventId,
             @RequestBody RSVPDTO rsvpdto) {
 
-        RSVPDTO rsvp = rsvpService.updateRSVP(userId, eventId, rsvpdto);
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        RSVPDTO rsvp = rsvpService.updateRSVP(userId, eventId, rsvpdto, username);
         return ResponseEntity.ok(rsvp);
     }
 
-    @DeleteMapping("/rsvp")
+    @DeleteMapping("")
     public ResponseEntity<String> deleteRSVP(
             @RequestParam Long userId,
             @RequestParam Long eventId,
             @RequestBody RSVPDTO rsvpdto) {
 
-        rsvpService.deleteRSVP(userId, eventId, rsvpdto);
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        rsvpService.deleteRSVP(userId, eventId, rsvpdto, username);
         return ResponseEntity.ok("Deleted RSVP successfully!");
     }
 }

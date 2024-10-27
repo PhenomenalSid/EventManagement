@@ -3,6 +3,7 @@ package com.example.eventmanagement.service;
 import com.example.eventmanagement.dto.AuthDTO;
 import com.example.eventmanagement.dto.UserDTO;
 import com.example.eventmanagement.enums.Role;
+import com.example.eventmanagement.exception.AuthException.AdminRoleNotAllowedException;
 import com.example.eventmanagement.exception.AuthException.TokenNotValidException;
 import com.example.eventmanagement.exception.AuthException.UserNotLoggedInException;
 import com.example.eventmanagement.exception.UserException.UserAlreadyExistsException;
@@ -11,6 +12,7 @@ import com.example.eventmanagement.model.User;
 import com.example.eventmanagement.repository.UserRepository;
 import com.example.eventmanagement.util.JWTUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -18,6 +20,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Objects;
 
 @Service
 public class UserService {
@@ -44,6 +48,11 @@ public class UserService {
         if (userRepository.findByUsername(authDTO.getUsername()).isPresent()) {
             throw new UserAlreadyExistsException("User with username " + authDTO.getUsername() + " already exists!");
         }
+
+        if(authDTO.getRole().equalsIgnoreCase("ADMIN")){
+            throw new AdminRoleNotAllowedException("Only admins can create users with admin roles!");
+        }
+
         User user = AuthDTO.toEntity(authDTO);
         User savedUser = userRepository.save(user);
         return User.toDTO(savedUser);
@@ -58,16 +67,22 @@ public class UserService {
         return User.toDTO(user);
     }
 
-    public UserDTO updateUserById(AuthDTO authDTO, Long userId) {
+    public UserDTO updateUserById(AuthDTO authDTO, Long userId, String username) {
         User user = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("User with id " + userId + " not found!"));
+        if(!Objects.equals(user.getUsername(), username)){
+            throw new AccessDeniedException("You are not allowed to update other user!");
+        }
         user.setRole(authDTO.getRole() != null ? Role.fromString(authDTO.getRole()) : user.getRole());
         user.setUsername(authDTO.getUsername() != null ? authDTO.getUsername() : user.getUsername());
         user.setPassword(authDTO.getPassword() != null ? passwordEncoder.encode(authDTO.getPassword()) : user.getPassword());
         return User.toDTO(user);
     }
 
-    public void deleteUserById(Long userId) {
+    public void deleteUserById(Long userId, String username) {
         User user = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("User with userId " + userId + " not found!"));
+        if(!Objects.equals(user.getUsername(), username)){
+            throw new AccessDeniedException("You are not allowed to delete other user!");
+        }
         userRepository.delete(user);
     }
 
