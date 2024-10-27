@@ -15,3 +15,25 @@ This project is an Event Management System developed in Java using Spring Boot. 
 - **Backend**: Java, Spring Boot, Spring Security, Spring Data JPA
 - **Database**: MySQL 
 - **Environment Management**: Dotenv for managing sensitive credentials in `.env`
+
+## Setup Instructions for Resume reviewer
+
+1. Prerequisites
+
+- **Java 23**
+- **Maven**
+- **MySQL**
+- **Redis**
+
+2. **Clone the Repository**:
+   ```bash
+   git clone <repository-url>
+   cd event-management-system
+   
+3. **Configure .env and application.properties files for database settings.**
+
+4. **Run the Application:**
+ ```bash
+ ./mvnw spring-boot:run
+
+
