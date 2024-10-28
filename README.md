@@ -30,7 +30,7 @@ This project is an Event Management System developed in Java using Spring Boot. 
    git clone https://github.com/PhenomenalSid/EventManagement
    cd event-management-system
    
-3. **Configure .env and application.properties files for database settings.**
+3. **Configure .env (take reference from .env.example file) and application.properties files for proper functioning of the project.**
 
 4. **Run the Application:**
  ```bash
