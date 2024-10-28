@@ -35,5 +35,7 @@ This project is an Event Management System developed in Java using Spring Boot. 
 4. **Run the Application:**
  ```bash
  ./mvnw spring-boot:run
+```
 
-
+## API Documentation
+https://api.postman.com/collections/23891289-a97d7bd7-902c-42ba-9892-4a9ea2f674ab?access_key=PMAT-01JB86S7F1AHXR3ZDTA44T0ZNW
