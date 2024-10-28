@@ -27,7 +27,7 @@ This project is an Event Management System developed in Java using Spring Boot. 
 
 2. **Clone the Repository**:
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/PhenomenalSid/EventManagement
    cd event-management-system
    
 3. **Configure .env and application.properties files for database settings.**
