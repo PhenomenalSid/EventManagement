@@ -46,12 +46,11 @@ public class RSVPController {
     @DeleteMapping("")
     public ResponseEntity<String> deleteRSVP(
             @RequestParam Long userId,
-            @RequestParam Long eventId,
-            @RequestBody RSVPDTO rsvpdto) {
+            @RequestParam Long eventId) {
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
-        rsvpService.deleteRSVP(userId, eventId, rsvpdto, username);
+        rsvpService.deleteRSVP(userId, eventId, username);
         return ResponseEntity.ok("Deleted RSVP successfully!");
     }
 }

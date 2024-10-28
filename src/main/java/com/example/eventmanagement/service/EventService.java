@@ -55,7 +55,7 @@ public class EventService {
     @Transactional
     public EventDTO updateEvent(Long eventId, EventDTO eventDTO, String username) {
         Event event = eventRepository.findById(eventId).orElseThrow(() -> new EventNotFoundException("Event with id " + eventId + " not found"));
-        if(!event.getOrganizer().equals(username))
+        if (!event.getOrganizer().equals(username))
             throw new AccessDeniedException("You are not allowed to update event of other organizer's event!");
         event.setName(eventDTO.getName() == null ? event.getName() : eventDTO.getName());
         event.setLocation(eventDTO.getLocation() == null ? event.getLocation() : eventDTO.getLocation());
@@ -68,7 +68,7 @@ public class EventService {
     @Transactional
     public void deleteEvent(Long eventId, String username) {
         Event event = eventRepository.findById(eventId).orElseThrow(() -> new EventNotFoundException("Even with eventId " + eventId + " not found!"));
-        if(!event.getOrganizer().equals(username))
+        if (!event.getOrganizer().equals(username))
             throw new AccessDeniedException("You are not allowed to delete event of other organizer's event!");
         eventRepository.delete(event);
     }

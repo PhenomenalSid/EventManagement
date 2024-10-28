@@ -41,7 +41,7 @@ public class SecurityConfig {
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/events/**").hasAnyRole("ADMIN", "ORGANIZER")
                         .requestMatchers("/users/**").hasAnyRole("ADMIN", "ORGANIZER", "PARTICIPANT")
-                        .requestMatchers("/admins/**").hasAnyRole("ADMIN")
+                        .requestMatchers("/admin/**").hasAnyRole("ADMIN")
                         .requestMatchers("/rsvp/**").hasAnyRole("ADMIN", "PARTICIPANT", "ORGANIZER")
                         .anyRequest().authenticated()
                 )

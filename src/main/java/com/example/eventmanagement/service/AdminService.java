@@ -16,6 +16,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -49,10 +50,20 @@ public class AdminService {
 
     @Transactional
     public UserDTO updateUserRole(Long userId, String role) {
+
         User existingUser = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("User with userId " + userId + " not found!"));
         if (existingUser.getRole().equals(Role.ADMIN)) {
             throw new AccessDeniedException("You cannot update role of other admin!");
         }
+
+        Role newRole = Role.fromString(role);
+
+        if (existingUser.getRole().equals(Role.ORGANIZER) && newRole.equals(Role.PARTICIPANT)) {
+            List<Event> events = eventRepository.findByOrganizerId(existingUser.getId());
+            eventRepository.deleteAll(events);
+            existingUser.setEvents(new ArrayList<>());
+        }
+
         existingUser.setRole(Role.fromString(role));
         User user = userRepository.save(existingUser);
         return User.toDTO(user);

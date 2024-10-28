@@ -86,7 +86,7 @@ public class RSVPService {
     }
 
     @Transactional
-    public void deleteRSVP(Long userId, Long eventId, RSVPDTO rsvpdto, String username) {
+    public void deleteRSVP(Long userId, Long eventId, String username) {
         RSVPKey rsvpKey = new RSVPKey(userId, eventId);
         RSVP existingRSVP = rsvpRepository.findById(rsvpKey).orElseThrow(() -> new RSVPNotFoundException("RSVP not found!"));
         if (!existingRSVP.getUser().getUsername().equals(username)) {
