@@ -2,6 +2,7 @@ package com.example.eventmanagement.service;
 
 import com.example.eventmanagement.dto.EventDTO;
 import com.example.eventmanagement.dto.UserDTO;
+import com.example.eventmanagement.enums.RSVPStatus;
 import com.example.eventmanagement.enums.Role;
 import com.example.eventmanagement.exception.AdminException.EventsNotFoundException;
 import com.example.eventmanagement.exception.AdminException.UsersNotFoundException;
@@ -29,6 +30,9 @@ public class AdminService {
     @Autowired
     private EventRepository eventRepository;
 
+    @Autowired
+    private EmailService emailService;
+
     public List<UserDTO> getAllUsers() {
         List<User> users = userRepository.findAll();
 
@@ -45,6 +49,13 @@ public class AdminService {
         if (user.getRole().equals(Role.ADMIN)) {
             throw new AccessDeniedException("You cannot delete other admin!");
         }
+        if (user.getRole().equals(Role.ORGANIZER)) {
+            user.getEvents().forEach(event -> event.getRsvps().forEach(rsvp -> {
+                if (rsvp.getStatus().equals(RSVPStatus.ACCEPTED)) {
+                    emailService.sendEventCancellation(rsvp.getUser().getUsername(), event.getName());
+                }
+            }));
+        }
         userRepository.delete(user);
     }
 
@@ -60,6 +71,14 @@ public class AdminService {
 
         if (existingUser.getRole().equals(Role.ORGANIZER) && newRole.equals(Role.PARTICIPANT)) {
             List<Event> events = eventRepository.findByOrganizerId(existingUser.getId());
+            for (Event event : events) {
+                event.getRsvps().forEach(rsvp -> {
+                    if (rsvp.getStatus().equals(RSVPStatus.ACCEPTED)) {
+                        emailService.sendEventCancellation(rsvp.getUser().getUsername(), event.getName());
+                    }
+                });
+            }
+
             eventRepository.deleteAll(events);
             existingUser.setEvents(new ArrayList<>());
         }
@@ -84,6 +103,11 @@ public class AdminService {
         if (!event.getOrganizer().getRole().equals(Role.ADMIN)) {
             throw new AccessDeniedException("You cannot delete events organized by other admin!");
         }
+        event.getRsvps().forEach(rsvp -> {
+            if (rsvp.getStatus().equals(RSVPStatus.ACCEPTED)) {
+                emailService.sendEventCancellation(rsvp.getUser().getUsername(), event.getName());
+            }
+        });
         eventRepository.delete(event);
     }
 }

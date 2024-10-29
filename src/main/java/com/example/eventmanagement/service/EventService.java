@@ -6,10 +6,12 @@ import com.example.eventmanagement.enums.RSVPStatus;
 import com.example.eventmanagement.exception.EventException.EventNotFoundException;
 import com.example.eventmanagement.exception.EventException.EventsByOrganizerNotFoundException;
 import com.example.eventmanagement.model.Event;
+import com.example.eventmanagement.model.RSVP;
 import com.example.eventmanagement.model.User;
 import com.example.eventmanagement.repository.EventRepository;
 import com.example.eventmanagement.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +29,27 @@ public class EventService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private EmailService emailService;
+
+    @Scheduled(cron = "0 0 * * * *")
+    public void sendReminders() {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime reminderTime = now.plusHours(2);
+
+        List<Event> upcomingEvents = eventRepository.findAllByDateBetween(now, reminderTime);
+
+        for (Event event : upcomingEvents) {
+            List<RSVP> acceptedRSVPs = event.getRsvps().stream()
+                    .filter(rsvp -> rsvp.getStatus() == RSVPStatus.ACCEPTED)
+                    .toList();
+
+            for (RSVP rsvp : acceptedRSVPs) {
+                emailService.sendEmailReminder(rsvp.getUser().getUsername(), event);
+            }
+        }
+    }
 
     @Transactional
     public EventDTO createEvent(String username, EventDTO eventDTO) {
@@ -55,21 +78,37 @@ public class EventService {
     @Transactional
     public EventDTO updateEvent(Long eventId, EventDTO eventDTO, String username) {
         Event event = eventRepository.findById(eventId).orElseThrow(() -> new EventNotFoundException("Event with id " + eventId + " not found"));
-        if (!event.getOrganizer().equals(username))
+
+        if (!event.getOrganizer().getUsername().equals(username))
             throw new AccessDeniedException("You are not allowed to update event of other organizer's event!");
+
         event.setName(eventDTO.getName() == null ? event.getName() : eventDTO.getName());
         event.setLocation(eventDTO.getLocation() == null ? event.getLocation() : eventDTO.getLocation());
         event.setDate(eventDTO.getDate() == null ? event.getDate() : LocalDateTime.parse(eventDTO.getDate()));
         event.setDescription(eventDTO.getDescription() == null ? event.getDescription() : eventDTO.getDescription());
         Event savedEvent = eventRepository.save(event);
+
+        event.getRsvps().forEach(rsvp -> {
+            if (rsvp.getStatus().equals(RSVPStatus.ACCEPTED)) {
+                emailService.sendEventUpdateNotification(rsvp.getUser().getUsername(), event.getName());
+            }
+        });
+
         return Event.toDTO(savedEvent);
     }
 
     @Transactional
     public void deleteEvent(Long eventId, String username) {
         Event event = eventRepository.findById(eventId).orElseThrow(() -> new EventNotFoundException("Even with eventId " + eventId + " not found!"));
-        if (!event.getOrganizer().equals(username))
+        if (!event.getOrganizer().getUsername().equals(username))
             throw new AccessDeniedException("You are not allowed to delete event of other organizer's event!");
+
+        event.getRsvps().forEach(rsvp -> {
+            if (rsvp.getStatus().equals(RSVPStatus.ACCEPTED)) {
+                emailService.sendEventCancellation(rsvp.getUser().getUsername(), event.getName());
+            }
+        });
+
         eventRepository.delete(event);
     }
 

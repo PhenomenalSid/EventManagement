@@ -2,15 +2,15 @@ package com.example.eventmanagement.enums;
 
 import lombok.Getter;
 
+@Getter
 public enum Role {
     PARTICIPANT("participant"),
     ORGANIZER("organizer"),
     ADMIN("admin");
 
-    @Getter
     private final String role;
 
-    private Role(String role){
+    Role(String role){
         this.role = role;
     }
 

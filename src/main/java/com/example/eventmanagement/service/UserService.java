@@ -2,6 +2,7 @@ package com.example.eventmanagement.service;
 
 import com.example.eventmanagement.dto.AuthDTO;
 import com.example.eventmanagement.dto.UserDTO;
+import com.example.eventmanagement.enums.RSVPStatus;
 import com.example.eventmanagement.enums.Role;
 import com.example.eventmanagement.exception.AuthException.AdminRoleNotAllowedException;
 import com.example.eventmanagement.exception.AuthException.TokenNotValidException;
@@ -50,6 +51,9 @@ public class UserService {
     @Autowired
     private JwtTokenBlacklistService jwtTokenBlacklistService;
 
+    @Autowired
+    private EmailService emailService;
+
     @Transactional
     public UserDTO createUser(AuthDTO authDTO) {
         if (userRepository.findByUsername(authDTO.getUsername()).isPresent()) {
@@ -63,10 +67,6 @@ public class UserService {
         User user = AuthDTO.toEntity(authDTO);
         User savedUser = userRepository.save(user);
         return User.toDTO(savedUser);
-    }
-
-    public User findUserByUsername(String userName) {
-        return userRepository.findByUsername(userName).orElseThrow(() -> new UserNotFoundException("Users with userName " + userName + " not found!"));
     }
 
     public UserDTO getUserById(Long userId) throws RuntimeException {
@@ -84,6 +84,13 @@ public class UserService {
 
         if (user.getRole().equals(Role.ORGANIZER) && newRole.equals(Role.PARTICIPANT)) {
             List<Event> events = eventRepository.findByOrganizerId(user.getId());
+
+            events.forEach(event -> event.getRsvps().forEach(rsvp -> {
+                if (rsvp.getStatus().equals(RSVPStatus.ACCEPTED)) {
+                    emailService.sendEventCancellation(rsvp.getUser().getUsername(), event.getName());
+                }
+            }));
+
             eventRepository.deleteAll(events);
             user.setEvents(new ArrayList<>());
         }

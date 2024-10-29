@@ -10,7 +10,7 @@ public enum RSVPStatus {
 
     private final String status;
 
-    private RSVPStatus(String status) {
+    RSVPStatus(String status) {
         this.status = status;
     }
 

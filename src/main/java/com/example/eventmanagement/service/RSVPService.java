@@ -33,6 +33,9 @@ public class RSVPService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private EmailService emailService;
+
     @Transactional
     public RSVPDTO respondToEvent(String username, RSVPDTO rsvpDTO) {
         Event event = eventRepository.findById(rsvpDTO.getEventId()).orElseThrow(() -> new EventNotFoundException("Event with eventId " + rsvpDTO.getEventId() + " not found!"));
@@ -59,6 +62,11 @@ public class RSVPService {
         }
 
         RSVP savedRSVP = rsvpRepository.save(rsvp);
+
+        if (savedRSVP.getStatus().equals(RSVPStatus.ACCEPTED)) {
+            emailService.sendRSVPConfirmation(username, savedRSVP.getEvent().getName());
+        }
+
         event.getRsvps().add(savedRSVP);
         eventRepository.save(event);
         return RSVP.toDTO(savedRSVP);
@@ -82,6 +90,11 @@ public class RSVPService {
         }
         existingRSVP.setStatus(RSVPStatus.fromString(rsvpRequestDTO.getStatus()));
         RSVP savedRSVP = rsvpRepository.save(existingRSVP);
+
+        if (savedRSVP.getStatus().equals(RSVPStatus.ACCEPTED)) {
+            emailService.sendRSVPConfirmation(username, savedRSVP.getEvent().getName());
+        }
+
         return RSVP.toDTO(savedRSVP);
     }
 
