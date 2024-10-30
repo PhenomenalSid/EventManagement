@@ -77,9 +77,7 @@ public class UserService {
 
     public UserDTO getUserById(Long userId) throws RuntimeException {
         User user = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("User with id " + userId + " not found!"));
-        UserDTO userDTO = User.toDTO(user);
-        cacheService.cacheResource(userDTO);
-        return userDTO;
+        return User.toDTO(user);
     }
 
     public UserDTO updateUserById(AuthDTO authDTO, Long userId, String username) {
@@ -102,7 +100,6 @@ public class UserService {
                     }
                 });
             });
-
             eventRepository.deleteAll(events);
             user.setEvents(new ArrayList<>());
         }
