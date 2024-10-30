@@ -23,10 +23,13 @@ public class User {
     @Column(name = "Username", unique = true, nullable = false)
     private String username;
 
-    @Column(name = "Password")
+    @Column(name = "Email", unique = true, nullable = false)
+    private String email;
+
+    @Column(name = "Password", nullable = false)
     private String password;
 
-    @Column(name = "Role")
+    @Column(name = "Role", nullable = false)
     @Enumerated(EnumType.STRING)
     private Role role;
 
@@ -35,7 +38,9 @@ public class User {
 
     public static UserDTO toDTO(User user) {
         UserDTO userDTO = new UserDTO();
+        userDTO.setId(user.getId());
         userDTO.setUsername(user.getUsername());
+        userDTO.setEmail(user.getEmail());
         userDTO.setRole(user.getRole().toString());
         userDTO.setEvents(user.getEvents().stream().map(Event::toDTO).collect(Collectors.toList()));
         return userDTO;

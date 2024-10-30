@@ -14,10 +14,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class RSVP {
     @EmbeddedId
+    @Column(nullable = false)
     private RSVPKey id;
-
-    @Enumerated(EnumType.STRING)
-    private RSVPStatus status;
 
     @ManyToOne
     @MapsId("userId")
@@ -26,6 +24,10 @@ public class RSVP {
     @ManyToOne
     @MapsId("eventId")
     private Event event;
+
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    private RSVPStatus status;
 
     public static RSVPDTO toDTO(RSVP rsvp) {
         return new RSVPDTO(rsvp.getUser().getUsername(), rsvp.getEvent().getId(), rsvp.getStatus().toString());

@@ -20,9 +20,15 @@ public class Event {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false)
     private String name;
+
+    @Column(nullable = false)
     private String location;
+
+    @Column(nullable = false)
     private LocalDateTime date;
+
     private String description;
 
     @ManyToOne
@@ -33,7 +39,7 @@ public class Event {
 
     public static EventDTO toDTO(Event event){
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm");
-        return new EventDTO(event.getName(), event.getLocation(), event.getDate().format(formatter), event.getDescription(), event.getOrganizer().getUsername());
+        return new EventDTO(event.getId(), event.getName(), event.getLocation(), event.getDate().format(formatter), event.getDescription(), event.getOrganizer().getUsername());
     }
 }
 

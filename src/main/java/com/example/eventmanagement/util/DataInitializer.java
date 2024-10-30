@@ -17,6 +17,9 @@ public class DataInitializer implements CommandLineRunner {
     @Value("${admin.username}")
     private String defaultAdminUsername;
 
+    @Value("${admin.email}")
+    private String defaultAdminEmail;
+
     @Value("${admin.password}")
     private String defaultAdminPassword;
 
@@ -30,9 +33,9 @@ public class DataInitializer implements CommandLineRunner {
         if (userRepository.findByRole(Role.ADMIN).isEmpty()) {
             User adminUser = new User();
             adminUser.setUsername(defaultAdminUsername);
+            adminUser.setEmail(defaultAdminEmail);
             adminUser.setPassword(passwordEncoder.encode(defaultAdminPassword));
             adminUser.setRole(Role.ADMIN);
-
             userRepository.save(adminUser);
         }
     }

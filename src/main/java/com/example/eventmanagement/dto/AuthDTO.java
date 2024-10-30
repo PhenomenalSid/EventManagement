@@ -16,6 +16,7 @@ public class AuthDTO {
     private static final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     private String username;
+    private String email;
     private String password;
     private String role;
 
@@ -24,6 +25,7 @@ public class AuthDTO {
         user.setUsername(authDTO.getUsername());
         user.setPassword(passwordEncoder.encode(authDTO.getPassword()));
         user.setRole(Role.fromString(authDTO.getRole()));
+        user.setEmail(authDTO.getEmail());
         return user;
     }
 }

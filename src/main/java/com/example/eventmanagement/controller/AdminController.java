@@ -1,5 +1,6 @@
 package com.example.eventmanagement.controller;
 
+import com.example.eventmanagement.dto.AuthDTO;
 import com.example.eventmanagement.dto.EventDTO;
 import com.example.eventmanagement.dto.UserDTO;
 import com.example.eventmanagement.service.AdminService;
@@ -15,6 +16,12 @@ public class AdminController {
 
     @Autowired
     private AdminService adminService;
+
+    @PostMapping
+    public ResponseEntity<UserDTO> createUser(@RequestBody AuthDTO authDTO){
+        UserDTO user = adminService.createUser(authDTO);
+        return ResponseEntity.ok(user);
+    }
 
     @GetMapping("/all-users")
     public ResponseEntity<List<UserDTO>> getAllUsers(){

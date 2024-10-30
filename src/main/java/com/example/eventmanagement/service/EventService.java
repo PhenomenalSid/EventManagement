@@ -2,6 +2,7 @@ package com.example.eventmanagement.service;
 
 import com.example.eventmanagement.dto.EventDTO;
 import com.example.eventmanagement.dto.EventStatsDTO;
+import com.example.eventmanagement.dto.UserDTO;
 import com.example.eventmanagement.enums.RSVPStatus;
 import com.example.eventmanagement.exception.EventException.EventNotFoundException;
 import com.example.eventmanagement.exception.EventException.EventsByOrganizerNotFoundException;
@@ -9,6 +10,7 @@ import com.example.eventmanagement.model.Event;
 import com.example.eventmanagement.model.RSVP;
 import com.example.eventmanagement.model.User;
 import com.example.eventmanagement.repository.EventRepository;
+import com.example.eventmanagement.repository.RSVPRepository;
 import com.example.eventmanagement.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -31,7 +33,13 @@ public class EventService {
     private UserRepository userRepository;
 
     @Autowired
+    private RSVPRepository rsvpRepository;
+
+    @Autowired
     private EmailService emailService;
+
+    @Autowired
+    private CacheService cacheService;
 
     @Scheduled(cron = "0 0 * * * *")
     public void sendReminders() {
@@ -46,7 +54,7 @@ public class EventService {
                     .toList();
 
             for (RSVP rsvp : acceptedRSVPs) {
-                emailService.sendEmailReminder(rsvp.getUser().getUsername(), event);
+                emailService.sendEmailReminder(rsvp.getUser().getEmail(), event);
             }
         }
     }
@@ -59,7 +67,11 @@ public class EventService {
         Event savedEvent = eventRepository.save(event);
         user.getEvents().add(savedEvent);
         userRepository.save(user);
-        return Event.toDTO(savedEvent);
+        EventDTO savedEventDTO = Event.toDTO(savedEvent);
+        cacheService.cacheResource(savedEventDTO);
+        cacheService.invalidateCacheForAllResources(EventDTO.class);
+        cacheService.invalidateCacheForAllResources(UserDTO.class);
+        return savedEventDTO;
     }
 
     public List<EventDTO> getAllEventsByOrganizer(Long organizerId) {
@@ -71,12 +83,19 @@ public class EventService {
     }
 
     public EventDTO getEventById(Long eventId) {
+        EventDTO eventDTO = cacheService.getCachedResource(eventId, EventDTO.class);
+        if(eventDTO != null){
+            return eventDTO;
+        }
         Event event = eventRepository.findById(eventId).orElseThrow(() -> new EventNotFoundException("Event with id " + eventId + " not found"));
-        return Event.toDTO(event);
+        EventDTO savedEventDTO = Event.toDTO(event);
+        cacheService.cacheResource(savedEventDTO);
+        return savedEventDTO;
     }
 
     @Transactional
     public EventDTO updateEvent(Long eventId, EventDTO eventDTO, String username) {
+
         Event event = eventRepository.findById(eventId).orElseThrow(() -> new EventNotFoundException("Event with id " + eventId + " not found"));
 
         if (!event.getOrganizer().getUsername().equals(username))
@@ -86,15 +105,29 @@ public class EventService {
         event.setLocation(eventDTO.getLocation() == null ? event.getLocation() : eventDTO.getLocation());
         event.setDate(eventDTO.getDate() == null ? event.getDate() : LocalDateTime.parse(eventDTO.getDate()));
         event.setDescription(eventDTO.getDescription() == null ? event.getDescription() : eventDTO.getDescription());
+
         Event savedEvent = eventRepository.save(event);
+        EventDTO savedEventDTO = Event.toDTO(savedEvent);
 
         event.getRsvps().forEach(rsvp -> {
+            rsvp.setEvent(savedEvent);
+            rsvpRepository.save(rsvp);
             if (rsvp.getStatus().equals(RSVPStatus.ACCEPTED)) {
-                emailService.sendEventUpdateNotification(rsvp.getUser().getUsername(), event.getName());
+                emailService.sendEventUpdateNotification(rsvp.getUser().getEmail(), event.getName());
             }
         });
 
-        return Event.toDTO(savedEvent);
+        User user = userRepository.findByUsername(username).get();
+
+        user.getEvents().removeIf(event1 -> event1.getId().equals(eventId));
+        user.getEvents().add(savedEvent);
+
+        userRepository.save(user);
+
+        cacheService.cacheResource(savedEventDTO);
+        cacheService.invalidateCacheForAllResources(EventDTO.class);
+        cacheService.invalidateCacheForAllResources(UserDTO.class);
+        return savedEventDTO;
     }
 
     @Transactional
@@ -105,11 +138,14 @@ public class EventService {
 
         event.getRsvps().forEach(rsvp -> {
             if (rsvp.getStatus().equals(RSVPStatus.ACCEPTED)) {
-                emailService.sendEventCancellation(rsvp.getUser().getUsername(), event.getName());
+                emailService.sendEventCancellation(rsvp.getUser().getEmail(), event.getName());
             }
         });
 
         eventRepository.delete(event);
+        cacheService.invalidateCacheForResource(eventId, EventDTO.class);
+        cacheService.invalidateCacheForAllResources(EventDTO.class);
+        cacheService.getCachedAllResources(UserDTO.class);
     }
 
     public EventStatsDTO getEventStatsById(Long eventId, String username) {

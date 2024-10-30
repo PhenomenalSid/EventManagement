@@ -1,6 +1,7 @@
 package com.example.eventmanagement.service;
 
 import com.example.eventmanagement.dto.AuthDTO;
+import com.example.eventmanagement.dto.EventDTO;
 import com.example.eventmanagement.dto.UserDTO;
 import com.example.eventmanagement.enums.RSVPStatus;
 import com.example.eventmanagement.enums.Role;
@@ -54,6 +55,9 @@ public class UserService {
     @Autowired
     private EmailService emailService;
 
+    @Autowired
+    private CacheService cacheService;
+
     @Transactional
     public UserDTO createUser(AuthDTO authDTO) {
         if (userRepository.findByUsername(authDTO.getUsername()).isPresent()) {
@@ -66,12 +70,16 @@ public class UserService {
 
         User user = AuthDTO.toEntity(authDTO);
         User savedUser = userRepository.save(user);
-        return User.toDTO(savedUser);
+        UserDTO userDTO = User.toDTO(savedUser);
+        cacheService.invalidateCacheForAllResources(UserDTO.class);
+        return userDTO;
     }
 
     public UserDTO getUserById(Long userId) throws RuntimeException {
         User user = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("User with id " + userId + " not found!"));
-        return User.toDTO(user);
+        UserDTO userDTO = User.toDTO(user);
+        cacheService.cacheResource(userDTO);
+        return userDTO;
     }
 
     public UserDTO updateUserById(AuthDTO authDTO, Long userId, String username) {
@@ -85,11 +93,15 @@ public class UserService {
         if (user.getRole().equals(Role.ORGANIZER) && newRole.equals(Role.PARTICIPANT)) {
             List<Event> events = eventRepository.findByOrganizerId(user.getId());
 
-            events.forEach(event -> event.getRsvps().forEach(rsvp -> {
-                if (rsvp.getStatus().equals(RSVPStatus.ACCEPTED)) {
-                    emailService.sendEventCancellation(rsvp.getUser().getUsername(), event.getName());
-                }
-            }));
+            events.forEach(event -> {
+                cacheService.invalidateCacheForResource(event.getId(), EventDTO.class);
+                cacheService.invalidateCacheForAllResources(EventDTO.class);
+                event.getRsvps().forEach(rsvp -> {
+                    if (rsvp.getStatus().equals(RSVPStatus.ACCEPTED)) {
+                        emailService.sendEventCancellation(rsvp.getUser().getEmail(), event.getName());
+                    }
+                });
+            });
 
             eventRepository.deleteAll(events);
             user.setEvents(new ArrayList<>());
@@ -98,7 +110,13 @@ public class UserService {
         user.setRole(authDTO.getRole() != null ? Role.fromString(authDTO.getRole()) : user.getRole());
         user.setUsername(authDTO.getUsername() != null ? authDTO.getUsername() : user.getUsername());
         user.setPassword(authDTO.getPassword() != null ? passwordEncoder.encode(authDTO.getPassword()) : user.getPassword());
-        return User.toDTO(user);
+
+        User savedUser = userRepository.save(user);
+        UserDTO userDTO = User.toDTO(savedUser);
+
+        cacheService.invalidateCacheForAllResources(UserDTO.class);
+
+        return userDTO;
     }
 
     public void deleteUserById(Long userId, String username) {
@@ -106,6 +124,25 @@ public class UserService {
         if (!Objects.equals(user.getUsername(), username)) {
             throw new AccessDeniedException("You are not allowed to delete other user!");
         }
+
+        if (user.getRole().equals(Role.ORGANIZER)) {
+            List<Event> events = eventRepository.findByOrganizerId(user.getId());
+
+            events.forEach(event -> {
+                cacheService.invalidateCacheForResource(event.getId(), EventDTO.class);
+                cacheService.invalidateCacheForAllResources(EventDTO.class);
+                event.getRsvps().forEach(rsvp -> {
+                    if (rsvp.getStatus().equals(RSVPStatus.ACCEPTED)) {
+                        emailService.sendEventCancellation(rsvp.getUser().getEmail(), event.getName());
+                    }
+                });
+            });
+
+            eventRepository.deleteAll(events);
+            user.setEvents(new ArrayList<>());
+        }
+
+        cacheService.invalidateCacheForAllResources(UserDTO.class);
         userRepository.delete(user);
     }
 

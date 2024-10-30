@@ -64,7 +64,7 @@ public class RSVPService {
         RSVP savedRSVP = rsvpRepository.save(rsvp);
 
         if (savedRSVP.getStatus().equals(RSVPStatus.ACCEPTED)) {
-            emailService.sendRSVPConfirmation(username, savedRSVP.getEvent().getName());
+            emailService.sendRSVPConfirmation(savedRSVP.getUser().getEmail(), savedRSVP.getEvent().getName());
         }
 
         event.getRsvps().add(savedRSVP);
@@ -92,7 +92,7 @@ public class RSVPService {
         RSVP savedRSVP = rsvpRepository.save(existingRSVP);
 
         if (savedRSVP.getStatus().equals(RSVPStatus.ACCEPTED)) {
-            emailService.sendRSVPConfirmation(username, savedRSVP.getEvent().getName());
+            emailService.sendRSVPConfirmation(savedRSVP.getUser().getEmail(), savedRSVP.getEvent().getName());
         }
 
         return RSVP.toDTO(savedRSVP);
